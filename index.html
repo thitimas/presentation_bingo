@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Presentation Bingo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 3rem;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 1.25rem 0.75rem 2rem; }
+    }
+
+    /* ── Header ── */
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .page-sub {
+      font-size: 0.875rem;
+      color: #777;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Name screen ── */
+    #nameScreen {
+      background: #fff;
+      border: 1px solid #e0dfd8;
+      border-radius: 16px;
+      padding: 2rem 2rem 1.75rem;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+    }
+
+    #nameScreen .prompt {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+
+    #nameScreen input {
+      width: 100%;
+      font-size: 1rem;
+      padding: 0.65rem 0.875rem;
+      border: 1px solid #d0cfd8;
+      border-radius: 8px;
+      outline: none;
+      margin-bottom: 0.75rem;
+      background: #fafaf8;
+      color: #1a1a1a;
+      text-align: center;
+      transition: border-color 0.15s;
+    }
+
+    #nameScreen input:focus { border-color: #dc2626; }
+
+    #nameScreen button {
+      width: 100%;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      padding: 0.65rem 1rem;
+      background: #b91c1c;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #nameScreen button:hover { background: #991b1b; }
+
+    /* ── Card screen ── */
+    #cardScreen { display: none; width: 100%; max-width: 640px; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.875rem;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .card-greeting {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+
+    .card-greeting span { color: #b91c1c; }
+
+    .btn-small {
+      font-size: 0.8125rem;
+      color: #888;
+      background: none;
+      border: 1px solid #d8d7d0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-small:hover { border-color: #b91c1c; color: #b91c1c; }
+
+    /* Win banner */
+    #winBanner {
+      display: none;
+      background: #fee2e2;
+      border: 1px solid #dc2626;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: #991b1b;
+      margin-bottom: 0.875rem;
+      animation: pop 0.2s ease;
+    }
+
+    #winBanner.show { display: block; }
+
+    @keyframes pop {
+      0%   { transform: scale(0.96); opacity: 0.6; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+
+    /* Grid */
+    .bingo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 0.875rem;
+    }
+
+    .bingo-cell {
+      background: #fff;
+      border: 1px solid #e4e3dc;
+      border-radius: 10px;
+      padding: 12px 8px;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: clamp(0.6875rem, 1.9vw, 0.75rem);
+      line-height: 1.5;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.08s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .bingo-cell:hover:not(.special) {
+      border-color: #fca5a5;
+      background: #fff5f5;
+    }
+
+    .bingo-cell:active:not(.special) { transform: scale(0.96); }
+
+    .bingo-cell.marked {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #991b1b;
+      font-weight: 500;
+    }
+
+    .bingo-cell.special {
+      background: #f1f5f9;
+      border-color: #334155;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: clamp(0.6rem, 1.7vw, 0.7rem);
+      border-width: 2px;
+    }
+
+    .bingo-cell.special:hover {
+      background: #e2e8f0;
+      border-color: #1e293b;
+    }
+
+    .bingo-cell.winning {
+      background: #111111;
+      border-color: #000000;
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    .bingo-cell.special.winning {
+      background: #111111;
+      border-color: #000000;
+      color: #ffffff;
+    }
+
+    /* Footer */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #progress {
+      font-size: 0.8125rem;
+      color: #999;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #bbb;
+      text-align: center;
+      margin-top: 1.25rem;
+    }
+
+    @media (max-width: 480px) {
+      .bingo-grid { gap: 4px; }
+      .bingo-cell { min-height: 80px; padding: 8px 5px; }
+      .bingo-cell.special { min-height: 80px; }
+      .page-title { font-size: 1.25rem; }
+      .page-sub { margin-bottom: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="page-title">Presentation Bingo</h1>
+  <p class="page-sub">Ask questions &amp; give feedback during your classmates' presentations</p>
+
+  <!-- Name entry -->
+  <div id="nameScreen">
+    <p class="prompt">What's your name?</p>
+    <input type="text" id="nameInput" placeholder="Your name…" autocomplete="off" />
+    <button id="nameBtn">Get my bingo card</button>
+  </div>
+
+  <!-- Card -->
+  <div id="cardScreen">
+    <div class="card-top">
+      <div class="card-greeting">Playing as <span id="displayName"></span></div>
+      <button class="btn-small" id="changeBtn">Not you?</button>
+    </div>
+
+    <div id="winBanner">🎉 Bingo! Great engagement today!</div>
+
+    <div class="bingo-grid" id="bingoGrid"></div>
+
+    <div class="card-footer">
+      <span id="progress"></span>
+      <button class="btn-small" id="resetBtn">Clear all marks</button>
+    </div>
+
+    <p class="hint">Tap a square each time you ask a question or give feedback. Your progress is saved automatically.</p>
+  </div>
+
+  <script>
+    const SQUARES = [
+      "I asked a technical question",
+      "I asked a follow-up question",
+      "I pointed out a real limitation — kindly",
+      "I asked about a challenge or problem",
+      "I asked how the project could be improved",
+      "I asked if AI could have gotten this wrong",
+      "I shared a reaction or takeaway out loud with the group",
+      "I asked the presenter to clarify something",
+      "I suggested a feature the presenter hadn't thought of",
+      "I asked about an edge case or limitation",
+      "I disagreed with a design or implementation choice",
+      "I asked about bias, privacy, or a potential harm",
+      "I shared how this project inspired me",
+      "I asked what the presenter learned",
+      "I asked how the project could be expanded"
+    ];
+
+    const SPECIAL_INDEX = 10;
+
+    const LINES = [
+      [0,1,2,3],[4,5,6,7],[8,9,10,11],[12,13,14,15],
+      [0,4,8,12],[1,5,9,13],[2,6,10,14],[3,7,11,15],
+      [0,5,10,15],[3,6,9,12]
+    ];
+
+    // Seeded RNG — same name always → same card
+    function hash(s) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      return h;
+    }
+
+    function makeRng(seed) {
+      let s = seed >>> 0;
+      return () => {
+        s += 0x6D2B79F5;
+        let t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function seededShuffle(arr, rng) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function buildGrid(name) {
+      const rng = makeRng(hash(name.trim().toLowerCase()));
+      const shuffled = seededShuffle(SQUARES, rng);
+      const grid = [];
+      let si = 0;
+      for (let i = 0; i < 16; i++) {
+        grid.push(i === SPECIAL_INDEX
+          ? { text: "I spoke up at least once during every presentation", special: true }
+          : { text: shuffled[si++] });
+      }
+      return grid;
+    }
+
+    // State
+    let name = "";
+    let grid = [];
+    let marked = new Set();
+
+    const storeKey = n => "bingo_" + n.trim().toLowerCase();
+
+    function save() {
+      localStorage.setItem(storeKey(name), JSON.stringify([...marked]));
+    }
+
+    function loadMarks(n) {
+      try { return new Set(JSON.parse(localStorage.getItem(storeKey(n)) || "[]")); }
+      catch { return new Set(); }
+    }
+
+    function winLine() {
+      return LINES.find(l => l.every(i => marked.has(i))) || null;
+    }
+
+    function render() {
+      const winning = winLine();
+      const winSet = winning ? new Set(winning) : new Set();
+      const gridEl = document.getElementById("bingoGrid");
+      gridEl.innerHTML = "";
+
+      grid.forEach((sq, i) => {
+        const cell = document.createElement("div");
+        cell.className = "bingo-cell";
+
+        if (sq.special)        cell.classList.add("special");
+        if (marked.has(i))     cell.classList.add("marked");
+        if (sq.special && marked.has(i)) cell.classList.remove("marked");
+
+        if (winSet.has(i)) {
+          cell.classList.remove("marked");
+          cell.classList.add("winning");
+        }
+
+        cell.textContent = sq.text;
+
+        cell.addEventListener("click", () => {
+          if (marked.has(i)) marked.delete(i);
+          else marked.add(i);
+          save();
+          render();
+        });
+
+        gridEl.appendChild(cell);
+      });
+
+      document.getElementById("winBanner").classList.toggle("show", !!winning);
+
+      const n = marked.size;
+      document.getElementById("progress").textContent =
+        n === 0 ? "No squares marked yet"
+        : n === 1 ? "1 square marked"
+        : `${n} squares marked`;
+    }
+
+    function startCard(n) {
+      name = n.trim();
+      grid = buildGrid(name);
+      marked = loadMarks(name);
+
+      document.getElementById("displayName").textContent = name;
+      document.getElementById("nameScreen").style.display = "none";
+      document.getElementById("cardScreen").style.display = "block";
+
+      const url = new URL(location.href);
+      url.searchParams.set("name", name);
+      history.replaceState(null, "", url);
+
+      render();
+    }
+
+    // Events
+    document.getElementById("nameBtn").addEventListener("click", () => {
+      const v = document.getElementById("nameInput").value.trim();
+      if (v) startCard(v);
+    });
+
+    document.getElementById("nameInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const v = e.target.value.trim();
+        if (v) startCard(v);
+      }
+    });
+
+    document.getElementById("changeBtn").addEventListener("click", () => {
+      document.getElementById("cardScreen").style.display = "none";
+      document.getElementById("nameScreen").style.display = "block";
+      document.getElementById("nameInput").value = name;
+      const url = new URL(location.href);
+      url.searchParams.delete("name");
+      history.replaceState(null, "", url);
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      if (confirm("Clear all your marks and start fresh?")) {
+        marked = new Set();
+        save();
+        render();
+      }
+    });
+
+    // Auto-load from URL
+    const urlName = new URL(location.href).searchParams.get("name");
+    if (urlName && urlName.trim()) {
+      document.getElementById("nameInput").value = urlName.trim();
+      startCard(urlName.trim());
+    }
+  </script>
+</body>
+</html>
